@@ -60,11 +60,17 @@ var liri  = {
         });
     },
     OMDB: function(movie){
-        var queryUrl = `http://www.omdbapi.com/?t=${movie}&y=&plot=short&apikey=trilogy`;
+        //encodeURIComponent allows us to find movie titles with special characters ie. Love & Basketball
+        var queryUrl = `http://www.omdbapi.com/?t=${encodeURIComponent(movie)}&y=&plot=short&apikey=trilogy`;
         Request(queryUrl, function(error, response, body) {
-            if(!error && response.statusCode === 200){
+            result = JSON.parse(body);
+            if(!error && result.Response != "False"){
                 var thisMovie = new Movie(JSON.parse(body));
                 thisMovie.details();
+            }
+            else
+            {
+                console.log(`Unable to find ${movie} with the OMDB API`);
             }
         });
     },
