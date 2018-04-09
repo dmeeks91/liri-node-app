@@ -56,7 +56,7 @@ var liri  = {
     {
         var self = this,
             thisSpotify = new Spotify(Keys.spotify);
-
+        if (song.length === 0) song = "The Sign";
         thisSpotify.search({type: 'track', query: song}, function(err, data) 
         {
             if (err) 
