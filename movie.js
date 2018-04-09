@@ -11,7 +11,6 @@ function Movie (obj)
   this.Actors = obj.Actors;
 
   this.getRate = function(type) {
-    //console.log(JSON.stringify(obj, null, 2));
     return this.obj.Ratings.find( r8 => r8.Source === type);
   };
 

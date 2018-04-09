@@ -1,13 +1,14 @@
 require("dotenv").config();
 
 var fs = require("fs"),
+    inquirer = require('inquirer',)
     Keys = require('./keys'),
     Movie = require('./movie'),
     Request = require('request'),
-    Spotify = require('node-spotify-api'),    
+    Songs = require('./songs'),
+    Spotify = require('node-spotify-api'),
+    Tweets = require('./tweets');    
     Twitter = require('twitter');
-
-//console.log(Keys.twitter);
 
 var liri  = {
     actions: [
@@ -38,28 +39,76 @@ var liri  = {
 
             self[action.idObj.fnID](action.input);
     },
-    tweets: function(){
+    tweets: function()
+    {
         console.log("get tweets");
         var thisTwitter = new Twitter(Keys.twitter);
         var params = {screen_name: 'dmeeks91'};
             thisTwitter.get('statuses/user_timeline', params, function(error, tweets, response) {
                 if (!error) {
-                    console.log(tweets);
+                    var twitterLog = new Tweets(tweets);
+                    twitterLog.init();
+                    //twitterLog.print();
                 }
             });
     },
-    spotify: function(song){
-        console.log("spotify song");
-        var thisSpotify = new Spotify(Keys.spotify);
+    spotify: function(song)
+    {
+        var self = this,
+            thisSpotify = new Spotify(Keys.spotify);
 
-        thisSpotify.search({type: 'track', query: song}, function(err, data) {
-            if (err) {
+        thisSpotify.search({type: 'track', query: song}, function(err, data) 
+        {
+            if (err) 
+            {
                 return console.log('Error occurred: ' + err);
-            }             
-            console.log(JSON.stringify(data, null, 2));
+            }
+
+            self.displaySong(new Songs(data.tracks.items, song));            
         });
     },
-    OMDB: function(movie){
+    displaySong: function(allSongs)
+    { 
+        var self = this;
+        allSongs.init();
+        switch (allSongs.list.length)
+        {
+            case 0:
+                console.log(`Unable to find any songs titled "${allSongs.title}".`);
+                console.log(`Why don't you try listening to the "The Sign"?`);
+                self.spotify("The Sign");
+                break;
+            case 1:
+                allSongs.showSelected(allSongs.list[0].Artist);
+                break;
+            default:
+                self.selectArtist(allSongs).then(function(data){
+                    allSongs.showSelected(data.thisArtist);
+                })
+                break;
+        }
+    },
+    selectArtist: function(songs)
+    {
+        var msg = `We found ${songs.list.length} songs titled "${songs.title}". 
+        Please select the artist(s) you had in mind:`,
+            aList = songs.list.map(function(thisSong){
+                return thisSong.Artist;
+            });
+
+        return inquirer.prompt([
+            {
+                type: "list",
+                name: "thisArtist",
+                message: msg,
+                choices: aList
+            }
+        ])
+    },
+    OMDB: function(movie)
+    {
+        if (movie.length < 1) movie = "Mr. Nobody";
+        
         //encodeURIComponent allows us to find movie titles with special characters ie. Love & Basketball
         var queryUrl = `http://www.omdbapi.com/?t=${encodeURIComponent(movie)}&y=&plot=short&apikey=trilogy`;
         Request(queryUrl, function(error, response, body) {
@@ -83,16 +132,4 @@ var liri  = {
 }
 
 liri.startUp();
-
-/* var inventory = [
-    {name: 'apples', quantity: 2},
-    {name: 'bananas', quantity: 0},
-    {name: 'cherries', quantity: 5}
-];
-
-function isCherries(fruit) { 
-    return fruit.name === 'apples';
-}
-
-console.log(inventory.find(isCherries) != undefined); */
 
